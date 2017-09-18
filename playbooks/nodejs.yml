@@ -1,0 +1,63 @@
+---
+# Install nodejs on raspberry pi zero
+
+- hosts: all
+
+  remote_user: pi
+  become: yes
+  become_user: root
+
+  vars:
+    nodejs_version: 8.4.0
+    nodejs_platform: linux
+    nodejs_arch: armv6l
+    nodejs_uid: 1001
+    nodejs_gid: 1001
+    
+    nodejs_filename: node-v{{ nodejs_version }}-{{ nodejs_platform }}-{{ nodejs_arch }}.tar.gz
+    nodejs_url: https://nodejs.org/dist/v{{ nodejs_version }}/{{ nodejs_filename }}
+
+  tasks:
+
+    - block:
+
+        - name: Remove old versions of nodejs
+          file: name={{ item }} state=absent
+          with_items:
+            - /opt/nodejs
+            - /opt/node-v{{ nodejs_version }}-{{ nodejs_platform }}-{{ nodejs_arch }}
+            - /usr/bin/node
+            - /usr/bin/npm
+            - /usr/bin/npx
+
+        - name: Install new nodejs archive
+          unarchive: src={{ nodejs_url }} dest=/opt remote_src=yes owner=root group=root
+
+        - name: Rename installation
+          command: mv /opt/node-v{{ nodejs_version }}-{{ nodejs_platform }}-{{ nodejs_arch }} /opt/nodejs
+
+        - name: Create symlinks
+          file: src=/opt/nodejs/bin/{{ item }} dest=/usr/bin/{{ item }} state=link 
+          with_items:
+            - node
+            - npm
+            - npx
+
+      tags:
+        - install_nodejs
+
+    - name: Install modules
+      npm: name={{ item }} state=latest global=yes
+      with_items:
+        - forever
+        - express
+
+    - name: Create technical group for nodejs
+      group: name=node gid={{ nodejs_gid }}
+
+    - name: Create technical user for nodejs
+      user: name=node group=node uid={{ nodejs_uid }} comment="NodeJS technical user" shell=/bin/bash  
+
+    - name: Create logging directory for 'forever'
+      file: path=/var/log/forever state=directory owner=node group=node mode=0750
+

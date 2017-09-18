@@ -1,0 +1,12 @@
+# Ansible managed file. This file may be overwritten at an time.
+
+[ssh]
+ 
+enabled = true
+port = ssh
+filter = sshd
+logpath = /var/log/auth.log
+bantime = 600
+banaction = iptables-allports
+findtime = 900
+maxretry = 5

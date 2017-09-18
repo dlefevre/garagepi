@@ -1,0 +1,64 @@
+---
+# General tasks for securing our pi system
+
+- hosts: all
+
+  remote_user: pi
+  become: yes
+  become_user: root
+
+  tasks:
+    #
+    # Fail2ban
+    #
+    - name: Install fail2ban
+      apt: name=fail2ban state=latest
+
+    - name: Configure fail2ban
+      copy: src=fail2ban/jail.local dest=/etc/fail2ban/jail.local owner=root group=root mode=0644
+      notify:
+        - Restart fail2ban
+
+    - name: Enabled fail2ban
+      service: name=fail2ban state=started enabled=yes
+
+    #
+    # SSHD
+    #
+    - name: Configure sshd
+      copy: src=ssh/{{ item }} dest=/etc/ssh/{{ item }} owner=root group=root mode=0644
+      with_items:
+        - sshd_config
+        - sshd_banner
+      notify:
+        - Restart sshd
+
+    #
+    # Updates
+    #
+    - name: Install unattended updates
+      apt: name={{ item }} state=latest
+      with_items:
+        - unattended-upgrades 
+        - apt-listchanges
+
+    - name: Configure unattended updates
+      copy: src=unattended-upgrades/{{ item }} dest=/etc/apt/apt.conf.d/{{ item }} owner=root group=root mode=0644
+      with_items:
+        - 20auto-upgrades
+        - 50unattended-upgrades
+      notify:
+        - Restart unattended-upgrades
+
+    - name: Enabled unattended updates
+      service: name=unattended-upgrades state=started enabled=yes
+
+  handlers:
+    - name: Restart fail2ban
+      service: name=fail2ban state=restarted
+
+    - name: Restart sshd
+      service: name=ssh state=restarted
+
+    - name: Restart unattended-upgrades
+      service: name=unattended=upgrades state=restarted

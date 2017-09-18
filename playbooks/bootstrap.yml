@@ -1,0 +1,33 @@
+---
+# Provision public key, strip pi's password and provision wifi setup
+
+- hosts: all
+
+  vars:
+
+
+  vars_prompt:
+    - name: wifi_ssid
+      prompt: Specify the Wifi SSID
+    - name: wifi_password
+      prompt: Specify the Wifi password
+    - name: pubkey
+      prompt: Specify the path to your public key
+
+  remote_user: pi
+
+  tasks:
+    - name: Install public key
+      authorized_key: user=pi key="{{ lookup('file', pubkey) }}" exclusive=no
+
+    - name: Disable pi's password
+      shell: passwd --lock pi
+      become: true
+      become_user: root
+
+    - name: Provision wifi setup
+      shell: >
+        wpa_passphrase {{ wifi_ssid }} "{{ wifi_password }}" |
+        perl -ne 'next if /^\s*#/; print;' >> /etc/wpa_supplicant/wpa_supplicant.conf
+      become: true
+      become_user: root
