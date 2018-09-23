@@ -1,0 +1,41 @@
+---
+# tasks/app.yaml
+
+- name: Create technical group for nodejs
+  group: name=node gid=1001
+
+- name: Create technical users for nodejs
+  user: name=node_ops group=node groups=gpio uid={{ nodejs_ops_uid }} comment="NodeJS operational user" shell=/bin/bash
+
+# Install app
+- name: Set up installation paths
+  file: name=/opt/{{ item }} state=directory mode=0755 owner=node_adm group=node
+  with_items:
+    - production
+    - staging
+
+- block:
+    - name: Update environment installation
+      git: repo={{ app_repository }} dest=/opt/{{ item.key }}/ version={{ item.value.revision }}
+      with_dict: "{{ app_environments }}"
+
+    - name: Install dependencies
+      npm: path=/opt/{{ item.key }}
+      with_dict: "{{ app_environments }}"
+
+  become: yes
+  become_user: node_adm
+
+- name: Set up userstore location
+  file: path=/home/node_ops/.gdr/users state=directory mode=0700
+
+# PM2
+- name: Provision pm2 ecosystem configuration file
+  template: src=app/ecosystem.config.js.j2 dest=/opt/{{ item.key }}/ecosystem.config.js owner=node_adm group=node mode=0644
+  with_dict: "{{ app_environments }}"
+
+- name: Register PM2 systemd entry
+  template: src=app/pm2-node_ops.service.j2 dest=/etc/systemd/system/pm2-node_ops.service owner=root group=root mode=0644
+
+- name: Register PM2 service
+  service: name=pm2-node_ops state=started enabled=yes

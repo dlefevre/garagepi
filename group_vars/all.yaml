@@ -1,0 +1,42 @@
+---
+# group_vars/all.yaml
+
+nodejs_version: 8.11.4
+nodejs_platform: linux
+nodejs_arch: armv6l
+nodejs_adm_uid: 1001
+nodejs_ops_uid: 1002
+nodejs_gid: 1001
+
+nodejs_filename: node-v{{ nodejs_version }}-{{ nodejs_platform }}-{{ nodejs_arch }}.tar.gz
+nodejs_url: https://nodejs.org/dist/v{{ nodejs_version }}/{{ nodejs_filename }}
+
+app_repository: https://github.com/dlefevre/garage-door-remote.git
+app_environments:
+    staging:
+        name: gdg-stage
+        node_env: staging
+        port: 8180
+        revision: HEAD
+        gpio_enabled: no
+
+    production:
+        name: gdg-prod
+        node_env: production
+        port: 8280
+        revision: HEAD
+        gpio_enabled: yes
+
+cert_country: BE
+cert_state: '-'
+cert_locality: '-'
+cert_organization: '-'
+cert_cn: garagepi
+
+nginx_config:
+  vhosts:
+    garage.lweb.be:
+      target: http://localhost:8280
+
+    garage-stage.lweb.be:
+      target: http://localhost:8180

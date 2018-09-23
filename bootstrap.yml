@@ -3,9 +3,6 @@
 
 - hosts: all
 
-  vars:
-
-
   vars_prompt:
     - name: wifi_ssid
       prompt: Specify the Wifi SSID

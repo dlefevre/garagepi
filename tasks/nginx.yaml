@@ -1,0 +1,42 @@
+---
+# tasks/nginx.yaml
+
+- name: Create self signed certificate
+  command: openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/nginx-selfsigned.key -out /etc/ssl/certs/nginx-selfsigned.crt -subj "/C={{ cert_country }}/ST={{ cert_state }}/L={{ cert_locality }}/O={{ cert_organization }}/CN={{ cert_cn }}"
+  args:
+    creates: /etc/ssl/private/nginx-selfsigned.key
+
+- name: Create Diffie-Hellman group
+  command: openssl dhparam -dsaparam -out /etc/ssl/certs/dhparam.pem 2048
+  args:
+    creates: /etc/ssl/certs/dhparam.pem
+
+- name: Deploy snippets
+  template: src=nginx/{{ item }}.j2 dest=/etc/nginx/snippets/{{ item }}
+  with_items:
+    - self-signed.conf
+    - ssl-params.conf
+
+- name: Install nginx default hosts
+  template: src=nginx/default.j2 dest=/etc/nginx/sites-available/default
+  notify: Restart nginx
+
+- name: Install nginx virtual hosts
+  template: src=nginx/server.j2 dest=/etc/nginx/sites-available/{{ item.key }}
+  with_dict: "{{ nginx_config.vhosts }}"
+  notify: Restart nginx
+
+- name: Enable default hosts
+  file: dest=/etc/nginx/sites-enabled/default src=/etc/nginx/sites-available/default state=link
+  notify: Restart nginx
+
+- name: Disable server tokens
+  lineinfile: path=/etc/nginx/nginx.conf regexp="# *server_tokens +off;" line="\tserver_tokens off;"
+
+- name: Enable/disable nginx virtual hosts
+  file: 
+    dest: /etc/nginx/sites-enabled/{{ item.key }}
+    src: /etc/nginx/sites-available/{{ item.key }}
+    state: "{{ item.value.disabled | default(false) | ternary('absent', 'link') }}"
+  with_dict: "{{ nginx_config.vhosts }}"
+  notify: Restart nginx

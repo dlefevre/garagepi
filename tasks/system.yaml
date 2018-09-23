@@ -1,0 +1,93 @@
+---
+# General tasks for securing our pi system
+
+#
+# General setup
+#
+- block:
+    - name: Install applications and libraries
+      apt: name={{ item }} state=latest
+      with_items:
+        - git
+
+  tags:
+    - setup
+
+#
+# Fail2ban
+#
+- block:
+    - name: Install fail2ban
+      apt: name=fail2ban state=latest
+
+    - name: Configure fail2ban
+      copy: src=fail2ban/jail.local dest=/etc/fail2ban/jail.local owner=root group=root mode=0644
+      notify:
+        - Restart fail2ban
+
+    - name: Enabled fail2ban
+      service: name=fail2ban state=started enabled=yes
+
+  tags:
+    - fail2ban
+
+#
+# SSHD
+#
+- block:
+    - name: Configure sshd
+      copy: src=ssh/{{ item }} dest=/etc/ssh/{{ item }} owner=root group=root mode=0644
+      with_items:
+        - sshd_config
+        - sshd_banner
+      notify:
+        - Restart sshd
+
+  tags:
+    - sshd
+
+#
+# Updates
+#
+- block:
+    - name: Install unattended updates
+      apt: name={{ item }} state=latest
+      with_items:
+        - unattended-upgrades 
+        - apt-listchanges
+
+    - name: Configure unattended updates
+      copy: src=unattended-upgrades/{{ item }} dest=/etc/apt/apt.conf.d/{{ item }} owner=root group=root mode=0644
+      with_items:
+        - 20auto-upgrades
+        - 50unattended-upgrades
+      notify:
+        - Restart unattended-upgrades
+
+    - name: Enabled unattended updates
+      service: name=unattended-upgrades state=started enabled=yes
+
+  tags:
+    - unattended
+
+
+#
+# Optimize
+#
+- block:
+    - name: Disable obsolete services
+      service: name={{ item }} state=stopped enabled=no
+      with_items:
+        - sys-kernel-debug.mount
+        - avahi-daemon
+        - bluetooth
+        - triggerhappy
+        - keyboard-setup
+
+    - name: Uninstall obsolete packages
+      apt: name={{ item }} state=absent autoremove=yes
+      with_items:
+        - alsa-utils
+
+  tags:
+    - optimize

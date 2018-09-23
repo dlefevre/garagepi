@@ -1,0 +1,61 @@
+---
+# tasks/3pp.yaml
+
+#
+# Set up technical user for node installation
+#
+- name: Create technical group for nodejs
+  group: name=node gid={{ nodejs_gid }}
+
+- name: Create technical users for nodejs
+  user: name=node_adm group=node uid={{ nodejs_adm_uid }} comment="NodeJS Admin" shell=/bin/bash  
+
+#
+# Install node
+#
+- name: Remove old versions of nodejs
+  file: name={{ item }} state=absent
+  with_items:
+    - /opt/nodejs
+    - /opt/node-v{{ nodejs_version }}-{{ nodejs_platform }}-{{ nodejs_arch }}
+    - /usr/bin/node
+    - /usr/bin/npm
+    - /usr/bin/npx
+
+- name: Install new nodejs archive
+  unarchive: src={{ nodejs_url }} dest=/opt remote_src=yes owner=node_adm group=node
+
+- name: Rename installation
+  command: mv /opt/node-v{{ nodejs_version }}-{{ nodejs_platform }}-{{ nodejs_arch }} /opt/nodejs
+
+- name: Create symlinks nodejs
+  file: src=/opt/nodejs/bin/{{ item }} dest=/usr/bin/{{ item }} state=link 
+  with_items:
+    - node
+    - npm
+    - npx
+
+- name: Install modules
+  npm: name={{ item }} state=latest global=yes
+  become: yes
+  become_user: node_adm
+  with_items:
+    - pm2
+    - express
+
+- name: Create symlinks for pm2
+  file: src=/opt/nodejs/bin/{{ item }} dest=/usr/bin/{{ item }} state=link
+  with_items:
+    - pm2
+    - pm2-dev
+    - pm2-docker
+    - pm2-runtime
+
+#
+# Install nginx
+#
+- name: Install nginx
+  apt: name=nginx state=latest update_cache=yes
+
+- name: Enable nginx daemon
+  service: name=nginx state=started enabled=yes

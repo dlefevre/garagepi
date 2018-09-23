@@ -1,0 +1,14 @@
+// {{ ansible_managed }}
+
+module.exports = {
+  apps : [{
+    name: "{{ item.value.name }}",
+    script: "./server.js",
+    port: {{ item.value.port }},
+    cwd: "/opt/{{ item.key }}",
+    env: {
+      GPIO_ENABLED: "{{ item.value.gpio_enabled | default('yes') }}",
+      NODE_ENV: "{{ item.value.node_env }}"
+    }
+  }]
+}
