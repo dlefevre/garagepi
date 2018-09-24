@@ -31,7 +31,7 @@
   notify: Restart nginx
 
 - name: Disable server tokens
-  lineinfile: path=/etc/nginx/nginx.conf regexp="# *server_tokens +off;" line="\tserver_tokens off;"
+  lineinfile: path=/etc/nginx/nginx.conf regexp="server_tokens +off;" line="\tserver_tokens off;"
 
 - name: Enable/disable nginx virtual hosts
   file: 
