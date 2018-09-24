@@ -14,14 +14,14 @@ nodejs_url: https://nodejs.org/dist/v{{ nodejs_version }}/{{ nodejs_filename }}
 app_repository: https://github.com/dlefevre/garage-door-remote.git
 app_environments:
     staging:
-        name: gdg-stage
+        name: gdr-stage
         node_env: staging
         port: 8180
         revision: HEAD
         gpio_enabled: no
 
     production:
-        name: gdg-prod
+        name: gdr-prod
         node_env: production
         port: 8280
         revision: HEAD

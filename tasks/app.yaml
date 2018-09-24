@@ -29,6 +29,9 @@
 - name: Set up userstore location
   file: path=/home/node_ops/.gdr/users state=directory mode=0700
 
+- name: Set up session disk store
+  file: path=/home/node_ops/.gdr/sessions state=directory mode=0700
+
 # PM2
 - name: Provision pm2 ecosystem configuration file
   template: src=app/ecosystem.config.js.j2 dest=/opt/{{ item.key }}/ecosystem.config.js owner=node_adm group=node mode=0644
